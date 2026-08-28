@@ -19,14 +19,14 @@
         </div>
         <nav>
           <a href="index.html">Home</a>
-          <a href="projects.html" style="color: var(--rust);">Projects</a>
-          <a href="diary.html">Diary</a>
+          <a href="projects.html" class="active">Projects</a>
+          <a href="diary.html">Technical Log</a>
         </nav>
       </div>
     </header>
 
     <div class="container" style="padding-top: 60px; padding-bottom: 60px;">
-      
+
       <div style="margin-bottom: 40px; border-bottom: 2px dashed var(--text-navy); padding-bottom: 20px;">
         <a href="index.html" class="btn" style="font-size: 16px; padding: 10px 20px;">← Back to Home</a>
         <h2 class="section-title">Full Project Archive</h2>
@@ -34,52 +34,58 @@
       </div>
 
       <div class="projects-grid">
-        
-        <div class="project-card bg-green">
-          <div>
-            <div class="card-icon">📈</div>
-            <h3>Stock Predictor</h3>
-            <p>ML-driven trading engine using Python & SciPy with historical backtesting.</p>
+
+        <!-- Same project as the homepage card: kept in "in progress" state
+             rather than a dead "#" link until it has a real destination. -->
+        <div class="project-card project-wip">
+          <div class="card-thumb bg-green">
+            <p class="card-thumb-title">Limit Order Book (In Progress)</p>
           </div>
-          <div class="card-pills">
-            <span class="pill">Python</span>
-            <span class="pill">Pandas</span>
+          <div class="card-body">
+            <p>C++20 limit order book, currently being built and benchmarked for latency.</p>
+            <div class="card-pills">
+              <span class="pill">C++20</span>
+              <span class="pill">Latency</span>
+            </div>
           </div>
         </div>
 
-        <div class="project-card bg-blue">
-          <div>
-            <div class="card-icon">🌐</div>
-            <h3>The Nebula Project</h3>
+        <div class="project-card">
+          <div class="card-thumb bg-blue">
+            <p class="card-thumb-title">The Nebula Project</p>
+          </div>
+          <div class="card-body">
             <p>High-Performance C++ Network Orchestrator handling multi-threaded concurrency.</p>
-          </div>
-          <div class="card-pills">
-            <span class="pill">C++20</span>
-            <span class="pill">TCP/IP</span>
+            <div class="card-pills">
+              <span class="pill">C++20</span>
+              <span class="pill">TCP/IP</span>
+            </div>
           </div>
         </div>
 
-        <div class="project-card bg-red">
-          <div>
-            <div class="card-icon">🔩</div>
-            <h3>Driver_Forge</h3>
+        <div class="project-card">
+          <div class="card-thumb bg-red">
+            <p class="card-thumb-title">Driver_Forge</p>
+          </div>
+          <div class="card-body">
             <p>Context-aware driver generation bridging hardware and OS using LLMs.</p>
-          </div>
-          <div class="card-pills">
-            <span class="pill">Linux Kernel</span>
-            <span class="pill">LLMs</span>
+            <div class="card-pills">
+              <span class="pill">Linux Kernel</span>
+              <span class="pill">LLMs</span>
+            </div>
           </div>
         </div>
 
-        <div class="project-card bg-yellow">
-          <div>
-            <div class="card-icon">🕹️</div>
-            <h3>Retro Snake Game</h3>
-            <p>My first C++ project exploring game loops and memory management.</p>
+        <div class="project-card">
+          <div class="card-thumb bg-yellow">
+            <p class="card-thumb-title">Retro Snake Game</p>
           </div>
-          <div class="card-pills">
-            <span class="pill">C++</span>
-            <span class="pill">SDL2</span>
+          <div class="card-body">
+            <p>My first C++ project exploring game loops and memory management.</p>
+            <div class="card-pills">
+              <span class="pill">C++</span>
+              <span class="pill">SDL2</span>
+            </div>
           </div>
         </div>
 
@@ -87,7 +93,7 @@
     </div>
 
     <footer>
-      <p>© 2025 Ashish Aggrawal.</p>
+      <p>© 2026 Ashish Aggrawal.</p>
     </footer>
   </body>
 </html>

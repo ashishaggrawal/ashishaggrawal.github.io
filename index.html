@@ -5,12 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ashish Aggrawal - Hello World!!</title>
     <link rel="stylesheet" href="style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
     <style>
-      /* Quick inline fix to make skills look clickable immediately */
       .skill-tag {
         cursor: pointer;
       }
-      /* Style for the new "View Archive" links */
       .view-archive-link {
         display: inline-block;
         margin-top: 20px;
@@ -22,7 +21,7 @@
       }
       .view-archive-link:hover {
         color: var(--rust);
-        background-color: #fff8e1; /* Subtle highlight */
+        background-color: #fff8e1;
       }
     </style>
   </head>
@@ -40,13 +39,14 @@
     <header>
       <div class="container header-content">
         <div class="logo">
-          <h1>ASHISH.</h1>
+          <h1>Ashish.</h1>
         </div>
         <nav>
           <a href="#skills">Skills</a>
           <a href="#projects">Projects</a>
           <a href="#experience">Experience</a>
-          <a href="#diary">Diary</a>
+          <a href="#diary">Technical Log</a>
+          <a href="#contact">Contact</a>
         </nav>
       </div>
     </header>
@@ -65,18 +65,17 @@
             <p>
               Leveraging 12+ years of leadership experience to build software
               that matters. I specialize in
-              <span class="txt-rust">high-performance computing</span>,
-              <span class="txt-teal">systems architecture</span>, and
-              <span class="txt-red">machine learning</span>.
+              <span class="txt-rust">high-performance computing</span> and
+              <span class="txt-teal">systems architecture</span>.
             </p>
 
             <div class="hero-buttons">
-              <a href="https://github.com/aggraa22m" target="blank" class="btn"
+              <a href="https://github.com/aggraa22m" target="_blank" class="btn"
                 >GitHub</a
               >
               <a
                 href="https://www.linkedin.com/in/ashishaggrawal"
-                target="blank"
+                target="_blank"
                 class="btn"
                 >LinkedIn</a
               >
@@ -92,7 +91,7 @@
 
           <div class="hero-image-wrapper">
             <img
-              src="https://ui-avatars.com/api/?name=Ashish+Aggrawal&background=0D7C85&color=fff&size=400"
+              src="Resources/headshot.jpg"
               alt="Ashish Aggrawal"
               class="hero-img"
             />
@@ -101,130 +100,170 @@
       </section>
 
       <div class="main-layout">
-        <main>
+        <main class="full-width-content">
           <section id="skills" class="skills-section">
             <div class="section-header">
-              <!-- <span style="font-size: 24px">⚡</span> -->
               <h3 class="section-title">Technical Arsenal</h3>
             </div>
+            <div class="skills-subheading">Languages & Tools</div>
             <div class="skills-grid">
-              <div class="skill-tag" title="Filter projects by C++">
-                C++ / C
+              <div class="skill-card" title="C">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/c/00599C" alt="C" /></span>
+                <span class="skill-label">C</span>
               </div>
-              <div class="skill-tag" title="Filter projects by Kernel">
-                Linux Kernel
+              <div class="skill-card" title="C++">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/cplusplus" alt="C++" /></span>
+                <span class="skill-label">C++</span>
               </div>
-              <div class="skill-tag">Python</div>
-              <div class="skill-tag">TensorFlow</div>
-              <div class="skill-tag">Git</div>
-              <div class="skill-tag">Docker</div>
-              <div class="skill-tag">Bash / Shell</div>
-              <div class="skill-tag">System Design</div>
+              <div class="skill-card" title="Python">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/python" alt="Python" /></span>
+                <span class="skill-label">Python</span>
+              </div>
+              <div class="skill-card" title="Linux">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/linux/linux-original.svg" alt="Linux" /></span>
+                <span class="skill-label">Linux</span>
+              </div>
+              <div class="skill-card" title="PowerShell">
+                <span class="skill-icon-badge"><img class="skill-icon" src="Resources/powershell.png" alt="PowerShell" /></span>
+                <span class="skill-label">PowerShell</span>
+              </div>
+              <div class="skill-card" title="Docker">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/docker" alt="Docker" /></span>
+                <span class="skill-label">Docker</span>
+              </div>
+              <div class="skill-card" title="Git">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/git" alt="Git" /></span>
+                <span class="skill-label">Git</span>
+              </div>
+            </div>
+
+            <div class="skills-subheading">AI / Machine Learning</div>
+            <div class="skills-grid">
+              <div class="skill-card" title="PyTorch">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/pytorch" alt="PyTorch" /></span>
+                <span class="skill-label">PyTorch</span>
+              </div>
+              <div class="skill-card" title="NumPy">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/numpy" alt="NumPy" /></span>
+                <span class="skill-label">NumPy</span>
+              </div>
+              <div class="skill-card" title="scikit-learn">
+                <span class="skill-icon-badge"><img class="skill-icon" src="https://cdn.simpleicons.org/scikitlearn" alt="scikit-learn" /></span>
+                <span class="skill-label">scikit-learn</span>
+              </div>
+            </div>
+
+            <div class="skills-subheading">Focus Areas</div>
+            <div class="skill-chip-row">
+              <span class="skill-chip">Assembly</span>
+              <span class="skill-chip">SQL</span>
+              <span class="skill-chip">Unix System Calls</span>
+              <span class="skill-chip">OS Architecture</span>
+              <span class="skill-chip">Concurrent Systems</span>
+              <span class="skill-chip">Computer Networks</span>
+              <span class="skill-chip">Memory Management</span>
+              <span class="skill-chip">Process Scheduling</span>
+              <span class="skill-chip">Low-Latency Execution</span>
+              <span class="skill-chip">Applied Machine Learning</span>
+              <span class="skill-chip">NLP Coursework</span>
             </div>
           </section>
 
           <section id="projects">
             <div class="section-header">
-              <!-- <span style="font-size: 24px">📂</span> -->
               <h3 class="section-title">Featured Projects</h3>
             </div>
 
             <div class="projects-grid">
-              <a
-                href="#"
-                class="project-card bg-green"
-                style="text-decoration: none; color: inherit"
-              >
-                <div>
-                  <div class="card-icon">📈</div>
-                  <h3>Stock Predictor</h3>
+              <div class="project-card project-wip">
+                <div class="card-thumb bg-green">
+                  <p class="card-thumb-title">Limit Order Book (In Progress)</p>
+                </div>
+                <div class="card-body">
                   <p>
-                    ML-driven trading engine using Python & SciPy with
-                    historical backtesting.
+                    C++20 limit order book, currently being built and
+                    benchmarked for latency.
                   </p>
+                  <div class="card-pills">
+                    <span class="pill">C++20</span>
+                    <span class="pill">Latency</span>
+                  </div>
                 </div>
-                <div class="card-pills">
-                  <span class="pill">Python</span>
-                  <span class="pill">Pandas</span>
-                </div>
-              </a>
+              </div>
 
               <a
                 href="https://github.com/aggraa22m/Custom-C-Memory-Allocator-Simulator"
-                target="blank"
-                class="project-card bg-blue"
+                target="_blank"
+                class="project-card"
                 style="text-decoration: none; color: inherit"
               >
-                <div>
-                  <div class="card-icon">🔗</div>
-                  <h3>LockFree_Queue</h3>
+                <div class="card-thumb bg-blue">
+                  <p class="card-thumb-title">LockFree Queue</p>
+                </div>
+                <div class="card-body">
                   <p>
                     High-performance non-blocking queue using the Michael &
                     Scott algorithm to eliminate mutex contention.
                   </p>
-                </div>
-                <div class="card-pills">
-                  <span class="pill">C</span>
-                  <span class="pill">Atomics</span>
+                  <div class="card-pills">
+                    <span class="pill">C</span>
+                    <span class="pill">Atomics</span>
+                  </div>
                 </div>
               </a>
 
               <a
                 href="https://github.com/aggraa22m/Safety-Watchdog"
-                target="blank"
-                class="project-card bg-red"
+                target="_blank"
+                class="project-card"
                 style="text-decoration: none; color: inherit"
               >
-                <div>
-                  <div class="card-icon">🚨</div>
-                  <h3>Safety_Watchdog</h3>
+                <div class="card-thumb bg-red">
+                  <p class="card-thumb-title">Safety Watchdog</p>
+                </div>
+                <div class="card-body">
                   <p>
                     Real-time C++20 watchdog guaranteeing E-Stop states if
                     control software deadlocks or misses timing deadlines.
                   </p>
-                </div>
-                <div class="card-pills">
-                  <span class="pill">C++20</span>
-                  <span class="pill">Real-time</span>
+                  <div class="card-pills">
+                    <span class="pill">C++20</span>
+                    <span class="pill">Real-time</span>
+                  </div>
                 </div>
               </a>
 
               <a
                 href="https://fraud-analyzer-ml.streamlit.app/"
-                target="blank"
-                class="project-card bg-yellow"
+                target="_blank"
+                class="project-card"
                 style="text-decoration: none; color: inherit"
               >
-                <div>
-                  <div class="card-icon">💰</div>
-                  <h3>Fraud_Sentinel</h3>
-                  <p>
-                    Smart detection system using Isolation Forest to identify
-                    tax evasion and credit fraud with 0-100 risk scoring.
-                  </p>
+                <div class="card-thumb bg-yellow">
+                  <p class="card-thumb-title">Fraud Sentinel</p>
                 </div>
-                <div class="card-pills">
-                  <span class="pill">Python</span>
-                  <span class="pill">Scikit-learn</span>
+                <div class="card-body">
+                  <p>
+                    Smart detection system using Isolation Forest to
+                    identify tax evasion and credit fraud with 0-100 risk
+                    scoring.
+                  </p>
+                  <div class="card-pills">
+                    <span class="pill">Python</span>
+                    <span class="pill">Scikit-learn</span>
+                  </div>
                 </div>
               </a>
             </div>
-
-            <!-- <div style="text-align: right">
-              <a href="projects.html" class="view-archive-link"
-                >View Project Archive →</a
-              >
-            </div> -->
           </section>
 
           <section id="experience" class="experience-section">
             <div class="section-header">
-              <!-- <span style="font-size: 24px">💼</span> -->
               <h3 class="section-title">Experience Timeline</h3>
             </div>
 
             <div class="timeline-item">
-              <div class="role">Student / Career Break</div>
+              <div class="role">Student — Systems Programming Focus</div>
               <div class="company">Trent University</div>
               <span class="date">2023 - Present</span>
               <p>
@@ -246,81 +285,71 @@
             <div class="timeline-item">
               <div class="role">Various Professional Roles</div>
               <div class="company">Tech & Operations</div>
-              <span class="date">Previous 9 Years</span>
+              <span class="date">12 Years</span>
               <p>
-                Total of 12 years professional experience across various
+                Total of 12+ years professional experience across various
                 sectors.
               </p>
             </div>
           </section>
+
+          <section id="diary" class="diary-section">
+            <div class="section-header">
+              <h3 class="section-title">Technical Log</h3>
+            </div>
+            <ul class="diary-list horizontal-diary">
+              <!-- DIARY_CARDS:START -->
+              <li>
+                <span class="diary-date">Dec 31, 2025</span>
+                <a href="diary/why-a-plain-pointer-broke-my-lock-free-queue.html" class="diary-link">Why a 'plain' pointer broke my lock-free queue</a>
+                <p class="diary-excerpt">Exploring atomic operations and memory ordering.</p>
+              </li>
+              <li>
+                <span class="diary-date">Dec 26, 2025</span>
+                <a href="diary/portable-types-in-c.html" class="diary-link">The hidden cost of choosing the wrong variable type</a>
+                <p class="diary-excerpt">Exploring portable types and why int isn't always the right choice.</p>
+              </li>
+              <li>
+                <span class="diary-date">Dec 12, 2025</span>
+                <a href="diary/powershell-github-cleanup.html" class="diary-link">5 lines of PowerShell to clean up your GitHub portfolio</a>
+                <p class="diary-excerpt">A small automation that saved a lot of clicking.</p>
+              </li>
+              <!-- DIARY_CARDS:END -->
+            </ul>
+
+            <div style="margin-top: 30px; text-align: center">
+              <a
+                href="diary.html"
+                class="view-archive-link"
+                style="font-size: 16px"
+                >View All Logs →</a
+              >
+            </div>
+          </section>
+
+          <section id="contact" class="contact-section">
+            <div class="section-header">
+              <h3 class="section-title">Contact</h3>
+            </div>
+            <p style="margin-bottom: 24px">
+              Open to systems and performance engineering roles — reach out
+              directly.
+            </p>
+            <div class="hero-buttons">
+              <a href="mailto:ashish22m@hotmail.com" class="btn">Email</a>
+              <a
+                href="https://www.linkedin.com/in/ashishaggrawal"
+                target="_blank"
+                class="btn"
+                >LinkedIn</a
+              >
+            </div>
+          </section>
         </main>
-
-        <aside id="diary" class="sidebar">
-          <div class="sidebar-title"><span>📖</span> Digital Diary</div>
-          <ul class="diary-list">
-            <li>
-              <span class="diary-date">Dec 26, 2025</span>
-              <a
-                href="https://www.linkedin.com/feed/update/urn:li:activity:7409997308605632512/"
-                target="_blank"
-                class="diary-link"
-                >5 lines of PowerShell to clean up your GitHub portfolio</a
-              >
-              <p class="diary-excerpt">
-                Quick and easy way to maintain your github account.
-              </p>
-            </li>
-            <li>
-              <span class="diary-date">Dec 31, 2025</span>
-              <a
-                href="https://www.linkedin.com/feed/update/urn:li:activity:7411884706989834240/"
-                target="_blank"
-                class="diary-link"
-                >The hidden cost of choosing the wrong variable type.
-              </a>
-              <p class="diary-excerpt">
-                Exploring atomic operations and memory ordering.
-              </p>
-            </li>
-            <li>
-              <span class="diary-date">Jan 05, 2025</span>
-              <a
-                href="https://softwareengineering.stackexchange.com/questions/187457/what-is-the-principle-of-least-astonishment"
-                class="diary-link"
-                >Principle of least astonishment?</a
-              >
-              <p class="diary-excerpt">
-                what is called Principle of Least Astonishment? How is this
-                concept related to designing good APIs?
-              </p>
-            </li>
-            <li>
-              <span class="diary-date">Dec 28, 2024</span>
-              <a
-                href="https://www.linkedin.com/feed/update/urn:li:activity:7409997308605632512/"
-                target="blank"
-                class="diary-link"
-                >Use Powershell to clean GitHub</a
-              >
-              <p class="diary-excerpt">
-                5 lines of PowerShell to clean up your GitHub portfolio
-              </p>
-            </li>
-          </ul>
-
-          <div style="margin-top: 20px; text-align: center">
-            <a
-              href="diary.html"
-              class="view-archive-link"
-              style="font-size: 14px"
-              >View All Logs →</a
-            >
-          </div>
-        </aside>
       </div>
     </div>
     <footer>
-      <p>© 2025 Ashish Aggrawal.</p>
+      <p>© 2026 Ashish Aggrawal.</p>
     </footer>
   </body>
 </html>

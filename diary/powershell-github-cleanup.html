@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ashish Aggrawal - 5 lines of PowerShell to clean up your GitHub portfolio</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="color-bar">
+      <div class="c1"></div><div class="c2"></div><div class="c3"></div>
+      <div class="c4"></div><div class="c5"></div><div class="c6"></div><div class="c7"></div>
+    </div>
+
+    <header>
+      <div class="container header-content">
+        <div class="logo">
+          <h1><a href="../index.html">Ashish.</a></h1>
+        </div>
+        <nav>
+          <a href="../index.html">Home</a>
+          <a href="../projects.html">Projects</a>
+          <a href="../diary.html" class="active">Technical Log</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container" style="padding-top: 60px; padding-bottom: 60px;">
+      <div style="max-width: 800px; margin: 0 auto;">
+        <div style="margin-bottom: 40px; border-bottom: 2px dashed var(--text-navy); padding-bottom: 20px;">
+          <a href="../index.html#diary" class="btn" style="font-size: 16px; padding: 10px 20px;">&larr; Back to Technical Log</a>
+          <h2 class="section-title" style="margin-top: 20px;">5 lines of PowerShell to clean up your GitHub portfolio</h2>
+          <span class="diary-date" style="font-size: 15px;">Dec 12, 2025</span>
+        </div>
+
+        <div class="post-content">
+<p>I spent some time cleaning up my old repositories on GitHub. Deleting them manually through the website was taking too long, so I looked into the GitHub CLI (<code>gh</code>) instead.</p>
+<h4>The problem</h4>
+<p>The standard <code>gh</code> login doesn't give you delete rights by default. You have to request that scope explicitly before the CLI will let you delete anything.</p>
+<h4>Step 1: Unlock permissions</h4>
+<pre><code class="language-powershell">gh auth refresh -h github.com -s delete_repo</code></pre>
+<p>This re-authenticates your session with the <code>delete_repo</code> scope added, which isn't granted by default for safety reasons.</p>
+<h4>Step 2: The deletion loop</h4>
+<pre><code class="language-powershell">gh repo list --limit 100 --json name --jq '.[].name' | ForEach-Object {
+    $resp = Read-Host "DELETE '$_'? (y/n)"
+    if ($resp -eq 'y') {
+        gh repo delete $_ --confirm
+    }
+}</code></pre>
+<p>This fetches your repository names, asks for a <code>y/n</code> confirmation on each one individually, and only deletes the ones you approve.</p>
+<h4>Why it matters</h4>
+<p>It's a small script, but it's a good example of a habit worth building: when a manual task starts feeling repetitive, it's usually a sign there's a faster, safer way to do it. The confirmation prompt on every repo also matters — automating a destructive action without a safeguard is how you accidentally delete something you meant to keep.</p>
+<p>Use with caution — this genuinely deletes repositories, with no undo.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2026 Ashish Aggrawal.</p>
+    </footer>
+  </body>
+</html>

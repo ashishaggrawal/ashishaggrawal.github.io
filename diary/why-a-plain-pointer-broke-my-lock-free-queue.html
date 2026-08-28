@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ashish Aggrawal - Why a 'plain' pointer broke my lock-free queue</title>
+    <link rel="stylesheet" href="../style.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="color-bar">
+      <div class="c1"></div><div class="c2"></div><div class="c3"></div>
+      <div class="c4"></div><div class="c5"></div><div class="c6"></div><div class="c7"></div>
+    </div>
+
+    <header>
+      <div class="container header-content">
+        <div class="logo">
+          <h1><a href="../index.html">Ashish.</a></h1>
+        </div>
+        <nav>
+          <a href="../index.html">Home</a>
+          <a href="../projects.html">Projects</a>
+          <a href="../diary.html" class="active">Technical Log</a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="container" style="padding-top: 60px; padding-bottom: 60px;">
+      <div style="max-width: 800px; margin: 0 auto;">
+        <div style="margin-bottom: 40px; border-bottom: 2px dashed var(--text-navy); padding-bottom: 20px;">
+          <a href="../index.html#diary" class="btn" style="font-size: 16px; padding: 10px 20px;">&larr; Back to Technical Log</a>
+          <h2 class="section-title" style="margin-top: 20px;">Why a 'plain' pointer broke my lock-free queue</h2>
+          <span class="diary-date" style="font-size: 15px;">Dec 31, 2025</span>
+        </div>
+
+        <div class="post-content">
+<p>While building my lock-free concurrent queue in C, I ran into a problem that had nothing to do with the algorithm itself and everything to do with a single variable declaration.</p>
+<h4>The problem</h4>
+<p>The Michael &amp; Scott algorithm relies on <code>compare_exchange_strong</code> — an atomic operation that checks whether a value is still what you expect it to be, and only updates it if so, all in one indivisible step. This is what lets multiple threads fight over the same pointer without corrupting it.</p>
+<p>I had a shared pointer that multiple threads needed to read and update concurrently. My first instinct was to declare it as a plain pointer type and add locking around it later if tests failed. That instinct was wrong, and the failure wasn't obvious — it didn't crash immediately. It showed up as an intermittent test failure, roughly 1 in every few hundred runs, exactly the kind of bug that's easy to dismiss as "flaky" and re-run away.</p>
+<h4>What I learned</h4>
+<p>The fix wasn't a different algorithm — it was declaring the shared pointer using C11's <code>_Atomic</code> qualifier, paired with explicit memory ordering on every access (<code>memory_order_acquire</code> for reads, <code>memory_order_release</code> for writes). Without this, the compiler is free to reorder instructions and cache values in ways that are perfectly legal for single-threaded code but break the guarantees my algorithm depended on across threads.</p>
+<p>The specific insight: a "plain" pointer and an "atomic" pointer aren't just a style choice. They compile to different instructions and carry different guarantees about visibility across CPU cores. Two threads can each have their own cached copy of a plain variable's value in their core's cache — an atomic type with the right memory ordering forces that value to actually be synchronized across cores at the right moment.</p>
+<h4>Why it matters</h4>
+<p>This is the difference between code that works on your machine and code that fails under real concurrent load. My test suite eventually caught this because I ran it across 32+ threads specifically to stress this exact class of bug — a smaller thread count might never have surfaced it. It's also exactly the kind of failure that's hardest to debug after the fact, since it doesn't reproduce reliably.</p>
+<p>The broader lesson: in concurrent systems programming, the type you choose for a shared variable isn't a detail — it's part of your correctness guarantee, not just your data model.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2026 Ashish Aggrawal.</p>
+    </footer>
+  </body>
+</html>
