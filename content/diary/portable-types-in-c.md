@@ -2,8 +2,6 @@
 title: The hidden cost of choosing the wrong variable type
 date: 2025-12-26
 summary: Exploring portable types and why int isn't always the right choice.
-tags: C, Portability
-diagram: int-widths
 ---
 
 As I dive deeper into C and computer architecture, I've realized that getting code to compile is only half the battle. The real challenge is writing code that is both portable and hardware-optimized, while also being safe.

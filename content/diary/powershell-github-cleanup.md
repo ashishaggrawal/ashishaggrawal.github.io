@@ -2,8 +2,6 @@
 title: 5 lines of PowerShell to clean up your GitHub portfolio
 date: 2025-12-12
 summary: A small automation that saved a lot of clicking.
-tags: PowerShell, Tooling
-diagram: terminal
 ---
 
 I spent some time cleaning up my old repositories on GitHub. Deleting them manually through the website was taking too long, so I looked into the GitHub CLI (`gh`) instead.

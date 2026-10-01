@@ -2,8 +2,6 @@
 title: Floating-point addition is not associative
 date: 2026-08-10
 summary: Finite precision breaks (a + b) - b, and that's why a compiler can't freely reorder or vectorize float sums.
-tags: C, Floating Point, Compilers
-diagram: float-assoc
 ---
 
 In basic mathematics, addition is associative: `(A + B) + C == A + (B + C)`.

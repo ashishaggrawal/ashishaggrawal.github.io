@@ -80,75 +80,61 @@
           <svg class="ico-sun" aria-hidden="true"><use href="#ico-sun" /></svg>
         </button>
       </div>
-      <div class="read-progress" aria-hidden="true"><span></span></div>
     </header>
 
     <main id="main" class="container" style="padding-top: 60px; padding-bottom: 60px;">
-      <article class="post-layout has-toc">
-        <div class="page-intro post-head">
+      <article style="max-width: 800px; margin: 0 auto;">
+        <div class="page-intro">
           <a href="../diary.html" class="btn btn-secondary" style="font-size: 16px; padding: 10px 20px;">&larr; Back to Technical Log</a>
           <h1 class="section-title" style="margin-top: 20px;">The hidden cost of choosing the wrong variable type</h1>
-          <div class="log-meta post-meta"><time datetime="2025-12-26">Dec 26, 2025</time><span>3 min read</span></div>
-          <ul class="log-tags" aria-label="Topics"><li>C</li><li>Portability</li></ul>
+          <time class="diary-date" datetime="2025-12-26" style="font-size: 15px;">Dec 26, 2025</time>
         </div>
 
-        <nav class="post-toc" aria-label="On this page">
-          <p class="post-toc-title">On this page</p>
-          <ol>
-            <li><a href="#1-exact-width-int32-t">1. Exact Width — <code>int32_t</code></a></li>
-            <li><a href="#2-minimum-width-int-least8-t">2. Minimum Width — <code>int_least8_t</code></a></li>
-            <li><a href="#3-fastest-minimum-width-int-fast8-t">3. Fastest Minimum Width — <code>int_fast8_t</code></a></li>
-            <li><a href="#4-maximum-width-intmax-t">4. Maximum Width — <code>intmax_t</code></a></li>
-            <li><a href="#5-portability-in-i-o-prid32">5. Portability in I/O — <code>PRId32</code></a></li>
-            <li><a href="#putting-it-together">Putting it together</a></li>
-          </ol>
-        </nav>
-        <div class="post-main">
-          <div class="post-content">
+        <div class="post-content">
 <p>As I dive deeper into C and computer architecture, I've realized that getting code to compile is only half the battle. The real challenge is writing code that is both portable and hardware-optimized, while also being safe.</p>
 <p>I recently focused on portable types (<code>stdint.h</code>), and it changed how I think about declaring variables. It's not just about storing a number — it's about signaling intent to the compiler.</p>
 <p>Here are five concepts I learned, and why they matter in low-latency systems.</p>
-<h4 id="1-exact-width-int32-t">1. Exact Width — <code>int32_t</code></h4>
+<h4>1. Exact Width — <code>int32_t</code></h4>
 <p>Used when the hardware demands it. If a network packet header is exactly 32 bits, using a standard <code>int</code> is a bug waiting to happen — its actual size isn't guaranteed across every platform. <code>int32_t</code> guarantees the memory layout matches the hardware spec, every time.</p>
-<h4 id="2-minimum-width-int-least8-t">2. Minimum Width — <code>int_least8_t</code></h4>
+<h4>2. Minimum Width — <code>int_least8_t</code></h4>
 <p>"Use the smallest box available." When memory is tight — embedded sensors, or massive arrays of small values — you need the smallest container that fits. This type guarantees the compiler won't waste a single bit more than necessary.</p>
-<h4 id="3-fastest-minimum-width-int-fast8-t">3. Fastest Minimum Width — <code>int_fast8_t</code></h4>
+<h4>3. Fastest Minimum Width — <code>int_fast8_t</code></h4>
 <p>"Use the fastest box available." Sometimes an 8-bit variable is actually <em>slower</em> than a larger one, because a 64-bit CPU has to do extra work to mask off the unused bits. <code>int_fast8_t</code> tells the compiler: "I need to store a small number, but feel free to promote it to whatever register size makes the math fastest."</p>
-<h4 id="4-maximum-width-intmax-t">4. Maximum Width — <code>intmax_t</code></h4>
+<h4>4. Maximum Width — <code>intmax_t</code></h4>
 <p>The safety net. This type represents the largest integer the system can handle. It's especially useful for writing generic serialization code, where you need a guarantee that no data is lost regardless of what's being packed into it.</p>
-<h4 id="5-portability-in-i-o-prid32">5. Portability in I/O — <code>PRId32</code></h4>
+<h4>5. Portability in I/O — <code>PRId32</code></h4>
 <p><code>printf</code> isn't naturally portable for these types. Since <code>int32_t</code> might actually <em>be</em> an <code>int</code> or a <code>long</code> depending on the machine, standard format specifiers can silently break. Macros like <code>PRId32</code> from <code>inttypes.h</code> bridge that gap, so the same code prints correctly regardless of architecture.</p>
-<h4 id="putting-it-together">Putting it together</h4>
+<h4>Putting it together</h4>
 <pre><code class="language-c"><span class="tok-pre">#include</span> &lt;stdio.h&gt;
 <span class="tok-pre">#include</span> &lt;stdint.h&gt;
 <span class="tok-pre">#include</span> &lt;inttypes.h&gt;
 
 <span class="tok-kw">int</span> <span class="tok-fn">main</span>(<span class="tok-kw">void</span>) {
-    <span class="tok-comment">// Exact: Must match the hardware protocol (e.g. OUCH/ITCH)</span>
+    <span class="tok-comment">// Exact: Must match the hardware protocol (e.g. OUCH/ITCH)</span>
     <span class="tok-type">int32_t</span> packet_id = <span class="tok-num">1024</span>;
 
-    <span class="tok-comment">// Fast: Flag is small, but let CPU choose fastest register size</span>
+    <span class="tok-comment">// Fast: Flag is small, but let CPU choose fastest register size</span>
     <span class="tok-type">int_fast8_t</span> is_urgent = <span class="tok-num">1</span>;
 
-    <span class="tok-comment">// Max: Generic container for the largest possible value on this system</span>
+    <span class="tok-comment">// Max: Generic container for the largest possible value on this system</span>
     <span class="tok-type">intmax_t</span> total_system_volume = <span class="tok-num">9223372036854775807</span>;
 
-    <span class="tok-comment">// Portable printing with PRId32 and PRIdMAX</span>
+    <span class="tok-comment">// Portable printing with PRId32 and PRIdMAX</span>
     <span class="tok-fn">printf</span>(<span class="tok-string">"Packet: %"</span> PRId32 <span class="tok-string">" | Volume: %"</span> PRIdMAX <span class="tok-string">"\n"</span>, packet_id, total_system_volume);
 
     <span class="tok-kw">return</span> <span class="tok-num">0</span>;
 }</code></pre>
+
 <p>Output:</p>
 <pre><code>Packet: 1024 | Volume: 9223372036854775807</code></pre>
-<p>These details might seem small, but in a low-latency environment, they're the difference between code that works and code that's robust.</p>
-          </div>
 
+<p>These details might seem small, but in a low-latency environment, they're the difference between code that works and code that's robust.</p>
+        </div>
 
         <nav class="post-nav reveal" aria-label="More posts">
           <a href="why-a-plain-pointer-broke-my-lock-free-queue.html" rel="prev"><span>← Newer</span><strong>Why a 'plain' pointer broke my lock-free queue</strong></a>
           <a href="powershell-github-cleanup.html" rel="next"><span>Older →</span><strong>5 lines of PowerShell to clean up your GitHub portfolio</strong></a>
         </nav>
-        </div>
       </article>
     </main>
 
@@ -209,92 +195,6 @@
         );
         targets.forEach(function (el) {
           io.observe(el);
-        });
-      })();
-    </script>
-    <script>
-      (function () {
-        var bar = document.querySelector(".read-progress span");
-        var body = document.querySelector(".post-content");
-        function progress() {
-          if (!bar || !body) return;
-          var r = body.getBoundingClientRect();
-          var total = r.height - window.innerHeight * 0.6;
-          var p = total > 0 ? -r.top / total : 1;
-          bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, p)) + ")";
-        }
-        addEventListener("scroll", progress, { passive: true });
-        addEventListener("resize", progress);
-        progress();
-
-        var links = document.querySelectorAll(".post-toc a");
-        if (links.length && "IntersectionObserver" in window) {
-          var byId = {};
-          links.forEach(function (a) {
-            byId[a.getAttribute("href").slice(1)] = a;
-          });
-          var spy = new IntersectionObserver(
-            function (entries) {
-              entries.forEach(function (e) {
-                if (!e.isIntersecting) return;
-                links.forEach(function (a) {
-                  a.classList.remove("active");
-                });
-                var a = byId[e.target.id];
-                if (a) a.classList.add("active");
-              });
-            },
-            { rootMargin: "0px 0px -70% 0px" }
-          );
-          Object.keys(byId).forEach(function (id) {
-            var h = document.getElementById(id);
-            if (h) spy.observe(h);
-          });
-        }
-
-        document.querySelectorAll(".post-content pre").forEach(function (pre) {
-          var wrap = document.createElement("div");
-          wrap.className = "code-wrap";
-          pre.parentNode.insertBefore(wrap, pre);
-          wrap.appendChild(pre);
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "copy-btn";
-          btn.textContent = "Copy";
-          btn.setAttribute("aria-label", "Copy code to clipboard");
-          wrap.appendChild(btn);
-          btn.addEventListener("click", function () {
-            var text = pre.innerText;
-            function done(ok) {
-              btn.textContent = ok ? "Copied ✓" : "Press Ctrl+C";
-              btn.classList.toggle("copied", ok);
-              setTimeout(function () {
-                btn.textContent = "Copy";
-                btn.classList.remove("copied");
-              }, 1600);
-            }
-            function fallback() {
-              var ta = document.createElement("textarea");
-              ta.value = text;
-              ta.style.position = "fixed";
-              ta.style.opacity = "0";
-              document.body.appendChild(ta);
-              ta.select();
-              var ok = false;
-              try {
-                ok = document.execCommand("copy");
-              } catch (e) {}
-              document.body.removeChild(ta);
-              done(ok);
-            }
-            if (navigator.clipboard && window.isSecureContext) {
-              navigator.clipboard.writeText(text).then(function () {
-                done(true);
-              }, fallback);
-            } else {
-              fallback();
-            }
-          });
         });
       })();
     </script>

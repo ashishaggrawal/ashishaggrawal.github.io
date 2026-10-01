@@ -80,28 +80,17 @@
           <svg class="ico-sun" aria-hidden="true"><use href="#ico-sun" /></svg>
         </button>
       </div>
-      <div class="read-progress" aria-hidden="true"><span></span></div>
     </header>
 
     <main id="main" class="container" style="padding-top: 60px; padding-bottom: 60px;">
-      <article class="post-layout has-toc">
-        <div class="page-intro post-head">
+      <article style="max-width: 800px; margin: 0 auto;">
+        <div class="page-intro">
           <a href="../diary.html" class="btn btn-secondary" style="font-size: 16px; padding: 10px 20px;">&larr; Back to Technical Log</a>
           <h1 class="section-title" style="margin-top: 20px;">Your signed-overflow check may not survive -O2</h1>
-          <div class="log-meta post-meta"><time datetime="2026-08-13">Aug 13, 2026</time><span>2 min read</span></div>
-          <ul class="log-tags" aria-label="Topics"><li>C</li><li>Compilers</li><li>UB</li></ul>
+          <time class="diary-date" datetime="2026-08-13" style="font-size: 15px;">Aug 13, 2026</time>
         </div>
 
-        <nav class="post-toc" aria-label="On this page">
-          <p class="post-toc-title">On this page</p>
-          <ol>
-            <li><a href="#the-reasoning">The reasoning</a></li>
-            <li><a href="#the-fix-check-before-the-operation">The fix: check before the operation</a></li>
-            <li><a href="#takeaway">Takeaway</a></li>
-          </ol>
-        </nav>
-        <div class="post-main">
-          <div class="post-content">
+        <div class="post-content">
 <p>You write an overflow check in C. It looks correct, compiles clean, and passes every test.</p>
 <pre><code class="language-c"><span class="tok-kw">int</span> <span class="tok-fn">check_overflow</span>(<span class="tok-kw">int</span> x, <span class="tok-kw">int</span> y) {
     <span class="tok-kw">int</span> sum = x + y;
@@ -112,10 +101,10 @@
 }</code></pre>
 <p>You ship it, confident it's protecting your code from a classic integer overflow bug.</p>
 <p>Here's what you don't know: compile this under GCC or Clang with <code>-O2</code> or <code>-O3</code>, and the compiler is allowed to delete the entire <code>if</code> block. Not because it's buggy — because the C standard says it can.</p>
-<h3 id="the-reasoning">The reasoning</h3>
+<h3>The reasoning</h3>
 <ul><li>You wrote <code>x &gt; 0</code> and <code>y &gt; 0</code>.</li><li>In pure math, two positive numbers always sum to something positive.</li><li>Signed integer overflow is Undefined Behavior, and the standard says the compiler may assume UB never happens in valid code.</li><li>So <code>sum &lt; 0</code> is, by definition, logically impossible. Dead code. Deleted.</li></ul>
 <p>There is no warning and no error. The binary just silently ships without the check you wrote, tested, and trusted. This isn't a rare compiler edge case — it's standard, expected <code>-O2</code> behavior on GCC and Clang today. If you're validating untrusted input with a post-addition check like this, the validation may not exist in your release build at all.</p>
-<h3 id="the-fix-check-before-the-operation">The fix: check before the operation</h3>
+<h3>The fix: check before the operation</h3>
 <p>Stop trusting arithmetic that has already happened. Check before it runs:</p>
 <pre><code class="language-c"><span class="tok-kw">int</span> <span class="tok-fn">sadd_ok</span>(<span class="tok-kw">int</span> x, <span class="tok-kw">int</span> y) {
     <span class="tok-kw">if</span> (x &gt; <span class="tok-num">0</span> &amp;&amp; y &gt; INT_MAX - x) <span class="tok-kw">return</span> <span class="tok-num">0</span>; <span class="tok-comment">// would overflow</span>
@@ -128,47 +117,14 @@
     <span class="tok-comment">// handle overflow</span>
 }</code></pre>
 <p>Unsigned integers don't have this trap: the standard guarantees they wrap modulo <code>2^w</code>, so a post-addition check like <code>sum &gt;= x</code> is legal and safe there. It's specifically signed overflow that's UB.</p>
-<h3 id="takeaway">Takeaway</h3>
+<h3>Takeaway</h3>
 <p>In C, a check placed on the wrong side of the operation isn't a weaker check. It's not a check at all — and the compiler will prove that to you, silently, in production.</p>
-          </div>
-
-          <section class="post-related" aria-labelledby="related-title">
-            <h2 id="related-title" class="post-related-title">Related notes</h2>
-            <ul class="log-list reveal-stagger">
-              <li>
-                <article class="log-card">
-                  <div class="log-thumb"><svg viewBox="0 0 400 120" aria-hidden="true" focusable="false"><text class="fade" style="animation-delay: 0.1s" x="96" y="34" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="end">WIRE</text><text class="fade" style="animation-delay: 0.1s" x="96" y="98" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="end">x86</text><line class="d" style="animation-delay: 0.3s" pathLength="1" x1="140" y1="42" x2="338" y2="78" stroke="#002535" stroke-width="2" stroke-linecap="round" /><line class="d" style="animation-delay: 0.38s" pathLength="1" x1="206" y1="42" x2="272" y2="78" stroke="#0a5a60" stroke-width="2" stroke-linecap="round" /><line class="d" style="animation-delay: 0.45999999999999996s" pathLength="1" x1="272" y1="42" x2="206" y2="78" stroke="#002535" stroke-width="2" stroke-linecap="round" /><line class="d" style="animation-delay: 0.54s" pathLength="1" x1="338" y1="42" x2="140" y2="78" stroke="#002535" stroke-width="2" stroke-linecap="round" /><rect class="pop" style="animation-delay: 0.05s" x="112" y="14" width="56" height="28" rx="3" fill="#f8f5ec" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.1s" x="140" y="33" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">00</text><rect class="pop" style="animation-delay: 0.11s" x="178" y="14" width="56" height="28" rx="3" fill="#0a5a60" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.16s" x="206" y="33" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#f8f5ec" text-anchor="middle" font-weight="600">01</text><rect class="pop" style="animation-delay: 0.16999999999999998s" x="244" y="14" width="56" height="28" rx="3" fill="#f8f5ec" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.22s" x="272" y="33" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">00</text><rect class="pop" style="animation-delay: 0.22999999999999998s" x="310" y="14" width="56" height="28" rx="3" fill="#f8f5ec" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.28s" x="338" y="33" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">00</text><rect class="pop" style="animation-delay: 0.7s" x="112" y="78" width="56" height="28" rx="3" fill="#f8f5ec" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.75s" x="140" y="97" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">00</text><rect class="pop" style="animation-delay: 0.76s" x="178" y="78" width="56" height="28" rx="3" fill="#f8f5ec" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.81s" x="206" y="97" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">00</text><rect class="pop" style="animation-delay: 0.82s" x="244" y="78" width="56" height="28" rx="3" fill="#0a5a60" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.87s" x="272" y="97" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#f8f5ec" text-anchor="middle" font-weight="600">01</text><rect class="pop" style="animation-delay: 0.8799999999999999s" x="310" y="78" width="56" height="28" rx="3" fill="#f8f5ec" stroke="#002535" stroke-width="2" /><text class="fade" style="animation-delay: 0.9299999999999999s" x="338" y="97" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">00</text></svg></div>
-                  <div class="log-body">
-                    <div class="log-text">
-                      <div class="log-meta"><time datetime="2026-09-17">2026-09-17</time><span>2 min read</span></div>
-                      <h3 class="log-title"><a href="endianness-and-the-raw-pointer-cast.html" class="log-link">Endianness and the raw pointer cast trap</a></h3>
-                      <p class="log-excerpt">Why casting a byte buffer straight to uint32_t* fails in production — byte order, alignment, strict aliasing — and the memcpy + ntohl fix.</p>
-                      <div class="log-foot"><ul class="log-tags" aria-label="Topics"><li>C</li><li>Networking</li><li>UB</li></ul><span class="log-more" aria-hidden="true">Read →</span></div>
-                    </div>
-                  </div>
-                </article>
-              </li>
-              <li>
-                <article class="log-card">
-                  <div class="log-thumb"><svg viewBox="0 0 400 120" aria-hidden="true" focusable="false"><line class="d" style="animation-delay: 0s" pathLength="1" x1="20" y1="58" x2="360" y2="58" stroke="#002535" stroke-width="2" stroke-linecap="round" /><line class="d" style="animation-delay: 0.2s" pathLength="1" x1="40" y1="51" x2="40" y2="65" stroke="#002535" stroke-width="2" stroke-linecap="round" /><text class="fade" style="animation-delay: 0.3s" x="40" y="80" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">INT_MIN</text><line class="d" style="animation-delay: 0.25s" pathLength="1" x1="190" y1="51" x2="190" y2="65" stroke="#002535" stroke-width="2" stroke-linecap="round" /><text class="fade" style="animation-delay: 0.3s" x="190" y="80" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">0</text><line class="d" style="animation-delay: 0.30000000000000004s" pathLength="1" x1="282" y1="51" x2="282" y2="65" stroke="#002535" stroke-width="2" stroke-linecap="round" /><text class="fade" style="animation-delay: 0.3s" x="282" y="80" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#002535" text-anchor="middle">INT_MAX</text><path class="d" style="animation-delay: 0.5s" pathLength="1" d="M40 50 C 100 -4, 290 -4, 352 48" fill="none" stroke="#8f201c" stroke-width="2" /><text class="fade" style="animation-delay: 0.8s" x="196" y="30" font-family="'IBM Plex Mono',monospace" font-size="13" fill="#8f201c" text-anchor="middle" font-weight="600">−x</text><circle class="pop" style="animation-delay: 1.1s" cx="352" cy="58" r="7" fill="#f8f5ec" stroke="#8f201c" stroke-width="2" stroke-dasharray="3 2" /><text class="fade" style="animation-delay: 1.15s" x="352" y="80" font-family="'IBM Plex Mono',monospace" font-size="12.5" fill="#8f201c" text-anchor="middle" font-weight="600">2³¹?</text><path class="fade" style="animation-delay: 1.3s" d="M352 90 C 320 122, 90 122, 52 96" fill="none" stroke="#8f201c" stroke-width="2" stroke-dasharray="5 4" /><polygon class="pop" style="animation-delay: 1.4s" points="46,92 41,100 51,100" fill="#8f201c" /></svg></div>
-                  <div class="log-body">
-                    <div class="log-text">
-                      <div class="log-meta"><time datetime="2026-09-10">2026-09-10</time><span>2 min read</span></div>
-                      <h3 class="log-title"><a href="why-abs-int-min-is-negative.html" class="log-link">Why abs(INT_MIN) returns a negative number</a></h3>
-                      <p class="log-excerpt">Two's complement is asymmetric — TMin has no positive counterpart, and negating it is undefined behavior.</p>
-                      <div class="log-foot"><ul class="log-tags" aria-label="Topics"><li>C</li><li>Integers</li><li>UB</li></ul><span class="log-more" aria-hidden="true">Read →</span></div>
-                    </div>
-                  </div>
-                </article>
-              </li>
-            </ul>
-          </section>
+        </div>
 
         <nav class="post-nav reveal" aria-label="More posts">
           <a href="why-abs-int-min-is-negative.html" rel="prev"><span>← Newer</span><strong>Why abs(INT_MIN) returns a negative number</strong></a>
           <a href="floating-point-is-not-associative.html" rel="next"><span>Older →</span><strong>Floating-point addition is not associative</strong></a>
         </nav>
-        </div>
       </article>
     </main>
 
@@ -229,92 +185,6 @@
         );
         targets.forEach(function (el) {
           io.observe(el);
-        });
-      })();
-    </script>
-    <script>
-      (function () {
-        var bar = document.querySelector(".read-progress span");
-        var body = document.querySelector(".post-content");
-        function progress() {
-          if (!bar || !body) return;
-          var r = body.getBoundingClientRect();
-          var total = r.height - window.innerHeight * 0.6;
-          var p = total > 0 ? -r.top / total : 1;
-          bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, p)) + ")";
-        }
-        addEventListener("scroll", progress, { passive: true });
-        addEventListener("resize", progress);
-        progress();
-
-        var links = document.querySelectorAll(".post-toc a");
-        if (links.length && "IntersectionObserver" in window) {
-          var byId = {};
-          links.forEach(function (a) {
-            byId[a.getAttribute("href").slice(1)] = a;
-          });
-          var spy = new IntersectionObserver(
-            function (entries) {
-              entries.forEach(function (e) {
-                if (!e.isIntersecting) return;
-                links.forEach(function (a) {
-                  a.classList.remove("active");
-                });
-                var a = byId[e.target.id];
-                if (a) a.classList.add("active");
-              });
-            },
-            { rootMargin: "0px 0px -70% 0px" }
-          );
-          Object.keys(byId).forEach(function (id) {
-            var h = document.getElementById(id);
-            if (h) spy.observe(h);
-          });
-        }
-
-        document.querySelectorAll(".post-content pre").forEach(function (pre) {
-          var wrap = document.createElement("div");
-          wrap.className = "code-wrap";
-          pre.parentNode.insertBefore(wrap, pre);
-          wrap.appendChild(pre);
-          var btn = document.createElement("button");
-          btn.type = "button";
-          btn.className = "copy-btn";
-          btn.textContent = "Copy";
-          btn.setAttribute("aria-label", "Copy code to clipboard");
-          wrap.appendChild(btn);
-          btn.addEventListener("click", function () {
-            var text = pre.innerText;
-            function done(ok) {
-              btn.textContent = ok ? "Copied ✓" : "Press Ctrl+C";
-              btn.classList.toggle("copied", ok);
-              setTimeout(function () {
-                btn.textContent = "Copy";
-                btn.classList.remove("copied");
-              }, 1600);
-            }
-            function fallback() {
-              var ta = document.createElement("textarea");
-              ta.value = text;
-              ta.style.position = "fixed";
-              ta.style.opacity = "0";
-              document.body.appendChild(ta);
-              ta.select();
-              var ok = false;
-              try {
-                ok = document.execCommand("copy");
-              } catch (e) {}
-              document.body.removeChild(ta);
-              done(ok);
-            }
-            if (navigator.clipboard && window.isSecureContext) {
-              navigator.clipboard.writeText(text).then(function () {
-                done(true);
-              }, fallback);
-            } else {
-              fallback();
-            }
-          });
         });
       })();
     </script>

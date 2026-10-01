@@ -2,8 +2,6 @@
 title: Endianness and the raw pointer cast trap
 date: 2026-09-17
 summary: Why casting a byte buffer straight to uint32_t* fails in production — byte order, alignment, strict aliasing — and the memcpy + ntohl fix.
-tags: C, Networking, UB
-diagram: endianness
 ---
 
 When parsing a binary protocol or a network packet, this pattern shows up constantly:
