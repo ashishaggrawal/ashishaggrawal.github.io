@@ -2,6 +2,8 @@
 title: Your signed-overflow check may not survive -O2
 date: 2026-08-13
 summary: GCC and Clang can legally delete a post-addition signed-overflow check. Test the operands before the operation.
+tags: C, Compilers, UB
+diagram: overflow-check
 ---
 
 You write an overflow check in C. It looks correct, compiles clean, and passes every test.

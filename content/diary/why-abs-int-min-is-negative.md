@@ -2,6 +2,8 @@
 title: Why abs(INT_MIN) returns a negative number
 date: 2026-09-10
 summary: Two's complement is asymmetric — TMin has no positive counterpart, and negating it is undefined behavior.
+tags: C, Integers, UB
+diagram: int-range
 ---
 
 What is the absolute value of the smallest 32-bit integer? If your answer is 2,147,483,648, your program just triggered Undefined Behavior — or returned a negative number.

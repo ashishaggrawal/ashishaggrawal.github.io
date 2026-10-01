@@ -2,6 +2,8 @@
 title: Why a 'plain' pointer broke my lock-free queue
 date: 2025-12-31
 summary: Exploring atomic operations and memory ordering.
+tags: C, Concurrency, Atomics
+diagram: lock-free-queue
 ---
 
 The bug was intermittent. The data race was real.

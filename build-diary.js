@@ -110,6 +110,95 @@ const THEME_TOGGLE_BTN = `<button class="theme-toggle" type="button" aria-label=
           <svg class="ico-sun" aria-hidden="true"><use href="#ico-sun" /></svg>
         </button>`;
 
+// Post pages only: reading-progress bar, "On this page" highlighting and
+// copy buttons on code blocks.
+const POST_SCRIPT = `<script>
+      (function () {
+        var bar = document.querySelector(".read-progress span");
+        var body = document.querySelector(".post-content");
+        function progress() {
+          if (!bar || !body) return;
+          var r = body.getBoundingClientRect();
+          var total = r.height - window.innerHeight * 0.6;
+          var p = total > 0 ? -r.top / total : 1;
+          bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, p)) + ")";
+        }
+        addEventListener("scroll", progress, { passive: true });
+        addEventListener("resize", progress);
+        progress();
+
+        var links = document.querySelectorAll(".post-toc a");
+        if (links.length && "IntersectionObserver" in window) {
+          var byId = {};
+          links.forEach(function (a) {
+            byId[a.getAttribute("href").slice(1)] = a;
+          });
+          var spy = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                links.forEach(function (a) {
+                  a.classList.remove("active");
+                });
+                var a = byId[e.target.id];
+                if (a) a.classList.add("active");
+              });
+            },
+            { rootMargin: "0px 0px -70% 0px" }
+          );
+          Object.keys(byId).forEach(function (id) {
+            var h = document.getElementById(id);
+            if (h) spy.observe(h);
+          });
+        }
+
+        document.querySelectorAll(".post-content pre").forEach(function (pre) {
+          var wrap = document.createElement("div");
+          wrap.className = "code-wrap";
+          pre.parentNode.insertBefore(wrap, pre);
+          wrap.appendChild(pre);
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "copy-btn";
+          btn.textContent = "Copy";
+          btn.setAttribute("aria-label", "Copy code to clipboard");
+          wrap.appendChild(btn);
+          btn.addEventListener("click", function () {
+            var text = pre.innerText;
+            function done(ok) {
+              btn.textContent = ok ? "Copied ✓" : "Press Ctrl+C";
+              btn.classList.toggle("copied", ok);
+              setTimeout(function () {
+                btn.textContent = "Copy";
+                btn.classList.remove("copied");
+              }, 1600);
+            }
+            function fallback() {
+              var ta = document.createElement("textarea");
+              ta.value = text;
+              ta.style.position = "fixed";
+              ta.style.opacity = "0";
+              document.body.appendChild(ta);
+              ta.select();
+              var ok = false;
+              try {
+                ok = document.execCommand("copy");
+              } catch (e) {}
+              document.body.removeChild(ta);
+              done(ok);
+            }
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(text).then(function () {
+                done(true);
+              }, fallback);
+            } else {
+              fallback();
+            }
+          });
+        });
+      })();
+    </script>`;
+
 // ---- frontmatter -----------------------------------------------------
 
 function parsePost(raw, filename) {
@@ -237,7 +326,20 @@ function highlightCode(raw, lang) {
 // Supported: # / ## / ### headings (shifted to h3/h4/h5), bullet lists
 // (- or *), fenced code blocks (```lang), paragraphs, inline formatting.
 
-function markdownToHtml(md) {
+// Headings get a slug id; each one is also pushed onto `headings` so the
+// post page can build its "On this page" list.
+function slugify(text) {
+  return (
+    text
+      .toLowerCase()
+      .replace(/`/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "") || "section"
+  );
+}
+
+function markdownToHtml(md, headings = []) {
+  const usedIds = new Set();
   const codeBlocks = [];
   const source = md.replace(/```(\w*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
     codeBlocks.push(
@@ -260,7 +362,12 @@ function markdownToHtml(md) {
       const headingMatch = block.match(/^(#{1,3})\s+(.*)$/);
       if (headingMatch) {
         const level = headingMatch[1].length + 2;
-        return `<h${level}>${renderInline(headingMatch[2])}</h${level}>`;
+        let id = slugify(headingMatch[2]);
+        for (let n = 2; usedIds.has(id); n++) id = `${slugify(headingMatch[2])}-${n}`;
+        usedIds.add(id);
+        const html = renderInline(headingMatch[2]);
+        headings.push({ level, id, html });
+        return `<h${level} id="${id}">${html}</h${level}>`;
       }
 
       if (/^[-*]\s+/.test(block)) {
@@ -283,13 +390,273 @@ function formatDate(iso) {
   const [y, m, d] = iso.split("-").map(Number);
   return `${MONTHS[m - 1]} ${String(d).padStart(2, "0")}, ${y}`;
 }
+// ---- log card metadata ------------------------------------------------
+
+// ~200 words per minute, rounded up; code counts as words too.
+function readingMinutes(md) {
+  const words = md.replace(/[#*`>\-\[\]()!]/g, " ").split(/\s+/).filter(Boolean);
+  return Math.max(1, Math.ceil(words.length / 200));
+}
+
+// First few meaningful lines of the post's first code block (no #includes,
+// blank lines or bare braces), highlighted for the featured card.
+function codeTeaser(md) {
+  const m = md.match(/```(\w*)\r?\n([\s\S]*?)```/);
+  if (!m) return "";
+  const lines = m[2]
+    .split(/\r?\n/)
+    .filter((l) => l.trim() && !/^\s*#\s*include\b/.test(l) && !/^\s*[{}]\s*$/.test(l))
+    .slice(0, 4);
+  return lines.length ? highlightCode(lines.join("\n"), m[1]) : "";
+}
+
+// ---- card diagrams ----------------------------------------------------
+// Small line drawings in the same style as the homepage project
+// schematics (cream panel, navy strokes). Pick one per post with
+// `diagram: <name>` in the frontmatter; unknown/missing names fall back
+// to "chip". Classes drive the draw-in animation in style.css:
+//   .d    stroke draws itself (needs pathLength="1")
+//   .g    bar grows from the left      .pop  pops in
+//   .fade fades in                     .loop dashes keep marching
+
+const INK = "#002535";
+const PAPER = "#f8f5ec";
+const TEAL = "#0a5a60";
+const BERRY = "#8f201c";
+const RUST = "#b5450b";
+const GOLD = "#d98a1f";
+const MONO = `font-family="'IBM Plex Mono',monospace"`;
+const at = (s) => `style="animation-delay: ${s}s"`;
+const label = (x, y, text, { size = 12.5, fill = INK, anchor = "middle", cls = "fade", delay = 0.5, weight = "" } = {}) =>
+  `<text class="${cls}" ${at(delay)} x="${x}" y="${y}" ${MONO} font-size="${size}" fill="${fill}" text-anchor="${anchor}"${
+    weight ? ` font-weight="${weight}"` : ""
+  }>${text}</text>`;
+const line = (x1, y1, x2, y2, { stroke = INK, delay = 0, width = 2 } = {}) =>
+  `<line class="d" ${at(delay)} pathLength="1" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${width}" stroke-linecap="round" />`;
+const box = (x, y, w, h, { fill = PAPER, delay = 0, rx = 3, cls = "pop", extra = "" } = {}) =>
+  `<rect class="${cls}" ${at(delay)} x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${INK}" stroke-width="2"${extra} />`;
+const arrowHead = (x, y, dir, { fill = INK, delay = 0 } = {}) => {
+  const pts = {
+    right: `${x},${y} ${x - 8},${y - 5} ${x - 8},${y + 5}`,
+    left: `${x},${y} ${x + 8},${y - 5} ${x + 8},${y + 5}`,
+    up: `${x},${y} ${x - 5},${y + 8} ${x + 5},${y + 8}`,
+  }[dir];
+  return `<polygon class="pop" ${at(delay)} points="${pts}" fill="${fill}" />`;
+};
+
+const DIAGRAMS = {
+  // byte order: the same 4 bytes, wire order vs. little-endian memory
+  endianness() {
+    const xs = [112, 178, 244, 310];
+    const wire = ["00", "01", "00", "00"];
+    const mem = ["00", "00", "01", "00"];
+    let s = label(96, 34, "WIRE", { anchor: "end", delay: 0.1 }) + label(96, 98, "x86", { anchor: "end", delay: 0.1 });
+    xs.forEach((x, i) => {
+      s += line(x + 28, 42, xs[3 - i] + 28, 78, { stroke: i === 1 ? TEAL : INK, delay: 0.3 + i * 0.08 });
+    });
+    xs.forEach((x, i) => {
+      const hot = wire[i] === "01";
+      s += box(x, 14, 56, 28, { fill: hot ? TEAL : PAPER, delay: 0.05 + i * 0.06 });
+      s += label(x + 28, 33, wire[i], { fill: hot ? PAPER : INK, delay: 0.1 + i * 0.06, weight: hot ? "600" : "" });
+    });
+    xs.forEach((x, i) => {
+      const hot = mem[i] === "01";
+      s += box(x, 78, 56, 28, { fill: hot ? TEAL : PAPER, delay: 0.7 + i * 0.06 });
+      s += label(x + 28, 97, mem[i], { fill: hot ? PAPER : INK, delay: 0.75 + i * 0.06, weight: hot ? "600" : "" });
+    });
+    return s;
+  },
+
+  // two's complement range: negating INT_MIN has nowhere to land
+  "int-range"() {
+    let s = line(20, 58, 360, 58, { delay: 0 });
+    [
+      [40, "INT_MIN"],
+      [190, "0"],
+      [282, "INT_MAX"],
+    ].forEach(([x, t], i) => {
+      s += line(x, 51, x, 65, { delay: 0.2 + i * 0.05 });
+      s += label(x, 80, t, { delay: 0.3 });
+    });
+    s += `<path class="d" ${at(0.5)} pathLength="1" d="M40 50 C 100 -4, 290 -4, 352 48" fill="none" stroke="${BERRY}" stroke-width="2" />`;
+    s += label(196, 30, "−x", { fill: BERRY, size: 13, delay: 0.8, weight: "600" });
+    s += `<circle class="pop" ${at(1.1)} cx="352" cy="58" r="7" fill="${PAPER}" stroke="${BERRY}" stroke-width="2" stroke-dasharray="3 2" />`;
+    s += label(352, 80, "2³¹?", { fill: BERRY, delay: 1.15, weight: "600" });
+    s += `<path class="fade" ${at(1.3)} d="M352 90 C 320 122, 90 122, 52 96" fill="none" stroke="${BERRY}" stroke-width="2" stroke-dasharray="5 4" />`;
+    s += arrowHead(46, 92, "up", { fill: BERRY, delay: 1.4 });
+    return s;
+  },
+
+  // the optimizer deletes a post-addition overflow check
+  "overflow-check"() {
+    let s = box(12, 42, 112, 34, { delay: 0.05 }) + label(68, 63, "sum = x + y", { delay: 0.1 });
+    s += line(124, 59, 146, 59, { delay: 0.25 }) + arrowHead(150, 59, "right", { delay: 0.35 });
+    s += `<polygon class="pop" ${at(0.4)} points="205,26 260,59 205,92 150,59" fill="${PAPER}" stroke="${INK}" stroke-width="2" />`;
+    s += label(205, 63, "sum &lt; 0 ?", { size: 11.5, delay: 0.5 });
+    s += line(260, 59, 280, 59, { delay: 0.6 }) + arrowHead(284, 59, "right", { delay: 0.7 });
+    s += box(284, 42, 100, 34, { delay: 0.75 }) + label(334, 63, "return 1", { delay: 0.8 });
+    s += line(278, 88, 390, 30, { stroke: BERRY, delay: 1.1, width: 3 });
+    s += label(334, 110, "-O2: deleted", { fill: BERRY, delay: 1.4, weight: "600" });
+    s += label(205, 112, "UB ⇒ never true", { size: 11.5, delay: 1.4 });
+    return s;
+  },
+
+  // (a + b) + c  ≠  a + (b + c)
+  "float-assoc"() {
+    const node = (x, y, d) =>
+      `<circle class="pop" ${at(d)} cx="${x}" cy="${y}" r="13" fill="${PAPER}" stroke="${INK}" stroke-width="2" />` +
+      label(x, y + 4, "+", { size: 13, delay: d + 0.05, weight: "600" });
+    const leaf = (x, y, t, d) =>
+      box(x - 11, y - 11, 22, 22, { delay: d, fill: GOLD }) + label(x, y + 4, t, { delay: d + 0.05, weight: "600" });
+    let s = "";
+    // left: (a + b) + c
+    s += line(92, 30, 62, 68, { delay: 0.2 }) + line(92, 30, 126, 68, { delay: 0.2 });
+    s += line(62, 68, 38, 98, { delay: 0.4 }) + line(62, 68, 86, 98, { delay: 0.4 });
+    s += node(92, 30, 0.05) + node(62, 68, 0.3) + leaf(126, 70, "c", 0.35) + leaf(38, 100, "a", 0.5) + leaf(86, 100, "b", 0.5);
+    // right: a + (b + c)
+    s += line(308, 30, 274, 68, { delay: 0.2 }) + line(308, 30, 338, 68, { delay: 0.2 });
+    s += line(338, 68, 314, 98, { delay: 0.4 }) + line(338, 68, 362, 98, { delay: 0.4 });
+    s += node(308, 30, 0.05) + leaf(274, 70, "a", 0.35) + node(338, 68, 0.3) + leaf(314, 100, "b", 0.5) + leaf(362, 100, "c", 0.5);
+    s += label(200, 76, "≠", { size: 38, fill: BERRY, delay: 0.8 });
+    return s;
+  },
+
+  // linked nodes + a CAS swinging the tail pointer
+  "lock-free-queue"() {
+    let s = "";
+    [20, 112, 204].forEach((x, i) => {
+      const d = 0.05 + i * 0.12;
+      s += box(x, 44, 66, 32, { delay: d });
+      s += line(x + 46, 44, x + 46, 76, { delay: d + 0.1 });
+      s += `<circle class="pop" ${at(d + 0.15)} cx="${x + 56}" cy="60" r="3.5" fill="${INK}" />`;
+      if (i < 2) s += line(x + 60, 60, x + 88, 60, { delay: d + 0.2 }) + arrowHead(x + 92, 60, "right", { delay: d + 0.3 });
+    });
+    s += `<rect class="fade" ${at(0.7)} x="306" y="44" width="66" height="32" rx="3" fill="none" stroke="${TEAL}" stroke-width="2" stroke-dasharray="5 4" />`;
+    s += label(339, 64, "new", { fill: TEAL, delay: 0.75 });
+    s += `<path class="loop" d="M262 42 C 276 6, 320 6, 334 40" fill="none" stroke="${TEAL}" stroke-width="2" stroke-dasharray="4 3" />`;
+    s += label(346, 26, "CAS", { fill: TEAL, anchor: "start", delay: 0.8, weight: "600" });
+    s += label(53, 100, "HEAD", { delay: 0.5 }) + label(237, 100, "TAIL", { delay: 0.6 });
+    return s;
+  },
+
+  // 8 / 16 / 32 / 64-bit widths
+  "int-widths"() {
+    const rows = [
+      ["int8_t", 35, RUST],
+      ["int16_t", 70, TEAL],
+      ["int32_t", 140, GOLD],
+      ["int64_t", 280, BERRY],
+    ];
+    return rows
+      .map(
+        ([t, w, c], i) =>
+          label(84, 25 + i * 26, t, { anchor: "end", delay: 0.05 + i * 0.08 }) +
+          box(92, 13 + i * 26, w, 16, { fill: c, cls: "g gl", rx: 2, delay: 0.1 + i * 0.12 })
+      )
+      .join("");
+  },
+
+  // terminal deleting repos one confirmation at a time
+  terminal() {
+    const tx = (y, t, fill, d) => label(62, y, t, { fill, anchor: "start", size: 12, delay: d });
+    let s = `<rect class="fade" ${at(0)} x="40" y="8" width="320" height="104" rx="6" fill="#0b1a22" stroke="${INK}" stroke-width="2" />`;
+    s += [BERRY, GOLD, TEAL]
+      .map((c, i) => `<circle class="pop" ${at(0.1 + i * 0.05)} cx="${56 + i * 12}" cy="20" r="3.5" fill="${c}" />`)
+      .join("");
+    s += tx(46, "&gt; gh repo list | ForEach", "#6cbccc", 0.3);
+    s += tx(66, "  old-project-2019      y", "#dfe7e4", 0.5);
+    s += tx(84, "  hackathon-demo        y", "#dfe7e4", 0.6);
+    s += tx(102, "  portfolio             n", "#93c9a6", 0.7);
+    s += line(70, 62, 230, 62, { stroke: "#e07a6e", delay: 0.9 }) + line(70, 80, 230, 80, { stroke: "#e07a6e", delay: 1.05 });
+    return s;
+  },
+
+  // generic fallback: an IC package
+  chip() {
+    let s = box(150, 22, 100, 76, { delay: 0.05, fill: PAPER });
+    [36, 52, 68, 84].forEach((y, i) => {
+      s += line(122, y, 150, y, { delay: 0.2 + i * 0.06 }) + line(250, y, 278, y, { delay: 0.2 + i * 0.06 });
+    });
+    s += `<circle class="pop" ${at(0.3)} cx="164" cy="34" r="3" fill="${INK}" />`;
+    s += label(200, 66, "LOG", { size: 14, delay: 0.5, weight: "600" });
+    return s;
+  },
+};
+
+function renderDiagram(name) {
+  const draw = DIAGRAMS[name] || DIAGRAMS.chip;
+  return `<svg viewBox="0 0 400 120" aria-hidden="true" focusable="false">${draw()}</svg>`;
+}
+
 function rfc822(iso) {
   return new Date(`${iso}T12:00:00Z`).toUTCString();
 }
 
+// ---- log cards -----------------------------------------------------------
+// The newest post is the wide "featured" card (with a code teaser); the
+// rest sit in the two-column card grid. `base` is the path from the page
+// the card is on to the diary/ folder.
+
+function renderCard(p, indent, { featured = false, base = "" } = {}) {
+  const tags = p.tags.length
+    ? `<ul class="log-tags" aria-label="Topics">${p.tags
+        .map((t) => `<li>${escapeHtml(t)}</li>`)
+        .join("")}</ul>`
+    : "";
+  const teaser =
+    featured && p.teaser
+      ? `\n${indent}      <pre class="log-teaser" aria-hidden="true"><code>${p.teaser}</code></pre>`
+      : "";
+  return `${indent}<li${featured ? ' class="log-featured"' : ""}>
+${indent}  <article class="log-card">
+${indent}    <div class="log-thumb">${renderDiagram(p.diagram)}</div>
+${indent}    <div class="log-body">
+${indent}      <div class="log-text">
+${indent}        <div class="log-meta">${
+    featured ? `<span class="log-badge">Latest</span>` : ""
+  }<time datetime="${p.date}">${p.date}</time><span>${p.readMinutes} min read</span></div>
+${indent}        <h3 class="log-title"><a href="${base}${p.slug}.html" class="log-link">${escapeHtml(
+    p.title
+  )}</a></h3>
+${indent}        <p class="log-excerpt">${escapeHtml(p.summary)}</p>
+${indent}        <div class="log-foot">${tags}<span class="log-more" aria-hidden="true">Read →</span></div>
+${indent}      </div>${teaser}
+${indent}    </div>
+${indent}  </article>
+${indent}</li>`;
+}
+
+// Up to two other posts, ranked by tags in common (then newest first).
+// "C" is on nearly every post, so it only counts as a tie-breaker.
+function relatedPosts(post, posts) {
+  const mine = new Set(post.tags);
+  return posts
+    .filter((q) => q.slug !== post.slug)
+    .map((q) => ({
+      q,
+      score: q.tags.reduce((n, t) => n + (mine.has(t) ? (t === "C" ? 0.1 : 1) : 0), 0),
+    }))
+    .filter((r) => r.score >= 1)
+    .sort((a, b) => b.score - a.score || (a.q.date < b.q.date ? 1 : -1))
+    .slice(0, 2)
+    .map((r) => r.q);
+}
+
 // ---- post page template ------------------------------------------------
 
-function renderPostPage({ slug, title, date, summary, bodyHtml, newer, older }) {
+function renderPostPage({
+  slug,
+  title,
+  date,
+  summary,
+  tags,
+  readMinutes,
+  headings,
+  bodyHtml,
+  newer,
+  older,
+  related,
+}) {
   const safeTitle = escapeHtml(title);
   const safeSummary = escapeHtml(summary);
   const url = `${SITE_URL}/diary/${slug}.html`;
@@ -308,6 +675,45 @@ function renderPostPage({ slug, title, date, summary, bodyHtml, newer, older }) 
           ${link(older, "Older →", "next")}
         </nav>`
       : "";
+
+  // "On this page": the top two heading levels, only when there are 3+
+  const top = Math.min(...headings.map((h) => h.level));
+  const tocItems = headings.filter((h) => h.level <= top + 1);
+  const toc =
+    tocItems.length >= 3
+      ? `
+        <nav class="post-toc" aria-label="On this page">
+          <p class="post-toc-title">On this page</p>
+          <ol>
+${tocItems
+  .map(
+    (h) =>
+      `            <li${h.level > top ? ' class="sub"' : ""}><a href="#${h.id}">${h.html.replace(
+        /<\/?(?:a|em|strong)[^>]*>/g,
+        ""
+      )}</a></li>`
+  )
+  .join("\n")}
+          </ol>
+        </nav>`
+      : "";
+
+  const tagList = tags.length
+    ? `
+          <ul class="log-tags" aria-label="Topics">${tags
+            .map((t) => `<li>${escapeHtml(t)}</li>`)
+            .join("")}</ul>`
+    : "";
+
+  const relatedHtml = related.length
+    ? `
+          <section class="post-related" aria-labelledby="related-title">
+            <h2 id="related-title" class="post-related-title">Related notes</h2>
+            <ul class="log-list reveal-stagger">
+${related.map((p) => renderCard(p, "              ")).join("\n")}
+            </ul>
+          </section>`
+    : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -377,22 +783,26 @@ ${JSON.stringify(
         </nav>
         ${THEME_TOGGLE_BTN}
       </div>
+      <div class="read-progress" aria-hidden="true"><span></span></div>
     </header>
 
     <main id="main" class="container" style="padding-top: 60px; padding-bottom: 60px;">
-      <article style="max-width: 800px; margin: 0 auto;">
-        <div class="page-intro">
+      <article class="post-layout${toc ? " has-toc" : ""}">
+        <div class="page-intro post-head">
           <a href="../diary.html" class="btn btn-secondary" style="font-size: 16px; padding: 10px 20px;">&larr; Back to Technical Log</a>
           <h1 class="section-title" style="margin-top: 20px;">${safeTitle}</h1>
-          <time class="diary-date" datetime="${date}" style="font-size: 15px;">${formatDate(
+          <div class="log-meta post-meta"><time datetime="${date}">${formatDate(
     date
-  )}</time>
+  )}</time><span>${readMinutes} min read</span></div>${tagList}
         </div>
-
-        <div class="post-content">
+${toc}
+        <div class="post-main">
+          <div class="post-content">
 ${bodyHtml}
-        </div>
+          </div>
+${relatedHtml}
 ${postNav}
+        </div>
       </article>
     </main>
 
@@ -408,6 +818,7 @@ ${postNav}
       </div>
     </footer>
     ${THEME_TOGGLE_SCRIPT}
+    ${POST_SCRIPT}
   </body>
 </html>
 `;
@@ -432,12 +843,22 @@ function build() {
       const slug = file.replace(/\.md$/, "");
       const raw = fs.readFileSync(path.join(POSTS_DIR, file), "utf8");
       const { meta, body } = parsePost(raw, file);
+      const headings = [];
+      const bodyHtml = markdownToHtml(body, headings);
       return {
         slug,
         title: meta.title,
         date: meta.date,
         summary: meta.summary,
-        bodyHtml: markdownToHtml(body),
+        tags: (meta.tags || "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+        diagram: meta.diagram || "chip",
+        readMinutes: readingMinutes(body),
+        teaser: codeTeaser(body),
+        headings,
+        bodyHtml,
       };
     })
     .sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -447,20 +868,10 @@ function build() {
       ...p,
       newer: posts[idx - 1],
       older: posts[idx + 1],
+      related: relatedPosts(p, posts),
     });
     fs.writeFileSync(path.join(OUT_DIR, `${p.slug}.html`), page, "utf8");
   });
-
-  const renderItem = (p, indent) =>
-    `${indent}<li>
-${indent}  <time class="diary-date" datetime="${p.date}">${formatDate(
-      p.date
-    )}</time>
-${indent}  <a href="diary/${p.slug}.html" class="diary-link">${escapeHtml(
-      p.title
-    )}</a>
-${indent}  <p class="diary-excerpt">${escapeHtml(p.summary)}</p>
-${indent}</li>`;
 
   replaceBetween(
     INDEX_FILE,
@@ -468,7 +879,7 @@ ${indent}</li>`;
     CARDS_END,
     `\n${posts
       .slice(0, PREVIEW_COUNT)
-      .map((p) => renderItem(p, "              "))
+      .map((p, i) => renderCard(p, "              ", { featured: i === 0, base: "diary/" }))
       .join("\n")}\n              `,
     "index.html"
   );
@@ -477,7 +888,9 @@ ${indent}</li>`;
     DIARY_FILE,
     ARCHIVE_START,
     ARCHIVE_END,
-    `\n${posts.map((p) => renderItem(p, "          ")).join("\n")}\n          `,
+    `\n${posts
+      .map((p, i) => renderCard(p, "          ", { featured: i === 0, base: "diary/" }))
+      .join("\n")}\n          `,
     "diary.html"
   );
 

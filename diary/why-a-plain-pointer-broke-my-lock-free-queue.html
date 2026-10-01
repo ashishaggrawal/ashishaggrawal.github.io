@@ -80,17 +80,20 @@
           <svg class="ico-sun" aria-hidden="true"><use href="#ico-sun" /></svg>
         </button>
       </div>
+      <div class="read-progress" aria-hidden="true"><span></span></div>
     </header>
 
     <main id="main" class="container" style="padding-top: 60px; padding-bottom: 60px;">
-      <article style="max-width: 800px; margin: 0 auto;">
-        <div class="page-intro">
+      <article class="post-layout">
+        <div class="page-intro post-head">
           <a href="../diary.html" class="btn btn-secondary" style="font-size: 16px; padding: 10px 20px;">&larr; Back to Technical Log</a>
           <h1 class="section-title" style="margin-top: 20px;">Why a 'plain' pointer broke my lock-free queue</h1>
-          <time class="diary-date" datetime="2025-12-31" style="font-size: 15px;">Dec 31, 2025</time>
+          <div class="log-meta post-meta"><time datetime="2025-12-31">Dec 31, 2025</time><span>1 min read</span></div>
+          <ul class="log-tags" aria-label="Topics"><li>C</li><li>Concurrency</li><li>Atomics</li></ul>
         </div>
 
-        <div class="post-content">
+        <div class="post-main">
+          <div class="post-content">
 <p>The bug was intermittent. The data race was real.</p>
 <p>While building a Michael–Scott concurrent queue in C, I hit a failure that didn’t show up consistently.</p>
 <p>Rerun the test. It passes.</p>
@@ -107,12 +110,14 @@
 <p>Stress testing exposed the problem. Passing afterward didn’t prove correctness.</p>
 <p>Now I ask a different question when reviewing concurrent code:</p>
 <p>“What guarantees this access is safe when another thread runs at exactly the wrong moment?”</p>
-        </div>
+          </div>
+
 
         <nav class="post-nav reveal" aria-label="More posts">
           <a href="floating-point-is-not-associative.html" rel="prev"><span>← Newer</span><strong>Floating-point addition is not associative</strong></a>
           <a href="portable-types-in-c.html" rel="next"><span>Older →</span><strong>The hidden cost of choosing the wrong variable type</strong></a>
         </nav>
+        </div>
       </article>
     </main>
 
@@ -173,6 +178,92 @@
         );
         targets.forEach(function (el) {
           io.observe(el);
+        });
+      })();
+    </script>
+    <script>
+      (function () {
+        var bar = document.querySelector(".read-progress span");
+        var body = document.querySelector(".post-content");
+        function progress() {
+          if (!bar || !body) return;
+          var r = body.getBoundingClientRect();
+          var total = r.height - window.innerHeight * 0.6;
+          var p = total > 0 ? -r.top / total : 1;
+          bar.style.transform = "scaleX(" + Math.min(1, Math.max(0, p)) + ")";
+        }
+        addEventListener("scroll", progress, { passive: true });
+        addEventListener("resize", progress);
+        progress();
+
+        var links = document.querySelectorAll(".post-toc a");
+        if (links.length && "IntersectionObserver" in window) {
+          var byId = {};
+          links.forEach(function (a) {
+            byId[a.getAttribute("href").slice(1)] = a;
+          });
+          var spy = new IntersectionObserver(
+            function (entries) {
+              entries.forEach(function (e) {
+                if (!e.isIntersecting) return;
+                links.forEach(function (a) {
+                  a.classList.remove("active");
+                });
+                var a = byId[e.target.id];
+                if (a) a.classList.add("active");
+              });
+            },
+            { rootMargin: "0px 0px -70% 0px" }
+          );
+          Object.keys(byId).forEach(function (id) {
+            var h = document.getElementById(id);
+            if (h) spy.observe(h);
+          });
+        }
+
+        document.querySelectorAll(".post-content pre").forEach(function (pre) {
+          var wrap = document.createElement("div");
+          wrap.className = "code-wrap";
+          pre.parentNode.insertBefore(wrap, pre);
+          wrap.appendChild(pre);
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "copy-btn";
+          btn.textContent = "Copy";
+          btn.setAttribute("aria-label", "Copy code to clipboard");
+          wrap.appendChild(btn);
+          btn.addEventListener("click", function () {
+            var text = pre.innerText;
+            function done(ok) {
+              btn.textContent = ok ? "Copied ✓" : "Press Ctrl+C";
+              btn.classList.toggle("copied", ok);
+              setTimeout(function () {
+                btn.textContent = "Copy";
+                btn.classList.remove("copied");
+              }, 1600);
+            }
+            function fallback() {
+              var ta = document.createElement("textarea");
+              ta.value = text;
+              ta.style.position = "fixed";
+              ta.style.opacity = "0";
+              document.body.appendChild(ta);
+              ta.select();
+              var ok = false;
+              try {
+                ok = document.execCommand("copy");
+              } catch (e) {}
+              document.body.removeChild(ta);
+              done(ok);
+            }
+            if (navigator.clipboard && window.isSecureContext) {
+              navigator.clipboard.writeText(text).then(function () {
+                done(true);
+              }, fallback);
+            } else {
+              fallback();
+            }
+          });
         });
       })();
     </script>
